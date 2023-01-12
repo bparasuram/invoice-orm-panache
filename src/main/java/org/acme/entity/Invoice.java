@@ -4,10 +4,12 @@ import io.quarkus.hibernate.reactive.panache.Panache;
 import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
 import io.quarkus.hibernate.reactive.panache.common.runtime.ReactiveTransactional;
 import io.quarkus.logging.Log;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import javax.json.bind.annotation.JsonbDateFormat;
 import javax.persistence.Cacheable;
@@ -17,11 +19,17 @@ import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.Id;
 import javax.persistence.IdClass;
+import javax.persistence.JoinColumn;
+import javax.persistence.JoinColumns;
+import javax.persistence.MapsId;
 import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
 import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
+import javax.persistence.PrimaryKeyJoinColumn;
 import javax.persistence.Table;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -34,11 +42,14 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 @Cacheable
+@ToString
 @NamedQueries(value = {
     @NamedQuery(name = "Invoice.getById", 
-    query = "SELECT i FROM Invoice i LEFT JOIN FETCH i.items where i.invoiceNumber = ?1 and i.scanId = ?2")
+    query = "SELECT i FROM Invoice i LEFT JOIN FETCH i.lineItems where i.invoiceNumber = ?1 and i.scanId = ?2"),
+    @NamedQuery(name = "Invoice.getByCompanyCode", 
+    query = "SELECT i FROM Invoice i where i.companyCode = ?1")
 })
-public class Invoice extends PanacheEntityBase {
+public class Invoice extends PanacheEntityBase implements Serializable {
 
     @Id
     @Column(name="invoice_number")
@@ -96,24 +107,41 @@ public class Invoice extends PanacheEntityBase {
     @Column(name="related_invoice_number")
     public String relatedInvoiceNumber;
 
-    @OneToMany(mappedBy="invoice", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    public List<InvoiceItem> items;
+    @OneToMany(mappedBy="invoice", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    public List<InvoiceItem> lineItems;
 
-    public String toString() {
-        return this.getClass().getSimpleName() + "<" + this.invoiceNumber + ">";
-    }
+    //bi-directional one-to-one association to InvoiceCompany
+	@OneToOne(mappedBy="invoice", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+	public InvoiceCompany entity;
 
+	//bi-directional one-to-one association to InvoicePayment
+	@OneToOne(mappedBy="invoice", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+	public InvoicePayment payment;
+
+	//bi-directional one-to-one association to InvoiceVendor
+	@OneToOne(mappedBy="invoice", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+	public InvoiceVendor vendor;
+
+	//bi-directional many-to-one association to InvoiceWht
+	// @OneToMany(mappedBy="invoice", cascade = CascadeType.ALL)
+	// public List<InvoiceWht> wht;
+
+    // public String toString() {
+    //     return this.getClass().getSimpleName() + "<" + this.invoiceNumber + ">";
+    // }
+
+    @ReactiveTransactional
     public static Uni<Invoice> createInvoice(Invoice invoice) {
-        Uni<Invoice> uni = Panache
-                .withTransaction(() -> persist(invoice))
-                .replaceWith(invoice)
-                .ifNoItem()
-                .after(Duration.ofMillis(10000))
-                .fail()
-                .onFailure()
-                .transform(t -> new IllegalStateException(t));
-        
-        return uni;        
+        // Uni<Invoice> uni = Panache
+        //         .withTransaction(() -> persist(invoice))
+        //         .replaceWith(invoice)
+        //         .ifNoItem()
+        //         .after(Duration.ofMillis(10000))
+        //         .fail()
+        //         .onFailure()
+        //         .transform(t -> new IllegalStateException(t));
+        return Panache.getSession().chain(session -> session.persist(invoice)).replaceWith(invoice);
+        //return uni;        
 
     }
 
@@ -143,8 +171,19 @@ public class Invoice extends PanacheEntityBase {
 
     }
     
+    @ReactiveTransactional
     public static Uni<Invoice> findByInvoiceId(String invoiceId, String scanId) {
         return find("#Invoice.getById", invoiceId, scanId).firstResult();
+        //return Panache.getSession().chain(session -> session.createNamedQuer("#Invoice.getById").
+    }
+
+    @ReactiveTransactional
+    public static Uni<List<Invoice>> findByCompanyCode(String companyCode) {
+        Log.info("*** FETCHING  INVOICE BY CC *** "+companyCode); 
+        return find("#Invoice.getByCompanyCode", companyCode).list();
+        // Uni<List<Invoice>> uni = find("#Invoice.getByCompanyCode", companyCode).list();
+        // uni.onItem().invoke(item -> Log.info(" ** ITEM *** "+item));
+        // return uni; //find("#Invoice.getByCompanyCode", companyCode).list();
     }
 
     @ReactiveTransactional

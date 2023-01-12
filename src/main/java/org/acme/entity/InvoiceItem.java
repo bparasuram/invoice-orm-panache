@@ -7,7 +7,9 @@ import io.smallrye.mutiny.Uni;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
+import java.io.Serializable;
 
 import javax.json.bind.annotation.JsonbTransient;
 import javax.persistence.Cacheable;
@@ -29,11 +31,12 @@ import javax.persistence.Table;
 @AllArgsConstructor
 @Builder
 @Cacheable
+@ToString
 @NamedQueries(value = {
     @NamedQuery(name = "InvoiceItem.getById", 
     query = "SELECT i FROM InvoiceItem i  where i.invoiceNumber = ?1 and i.scanId = ?2")
 })
-public class InvoiceItem extends PanacheEntityBase {
+public class InvoiceItem extends PanacheEntityBase implements Serializable {
 
     @Id
     @Column(name="invoice_number")
@@ -95,9 +98,9 @@ public class InvoiceItem extends PanacheEntityBase {
     @JsonbTransient
     public Invoice invoice;
 
-    public String toString() {
-        return this.getClass().getSimpleName() + "<" + this.invoiceNumber + ">";
-    }
+    // public String toString() {
+    //     return this.getClass().getSimpleName() + "<" + this.invoiceNumber + ">";
+    // }
 
     public static Uni<Long> deleteInvoiceItem(Invoice invoice) {
         //return Panache.withTransaction(() -> delete("delete from InvoiceItem ii where ii.invoiceNumber = ?1 and ii.scanId = ?2", invoiceNumber, scanId));
