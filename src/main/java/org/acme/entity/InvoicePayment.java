@@ -10,7 +10,6 @@ import lombok.Builder;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
-import java.sql.Timestamp;
 import java.time.ZonedDateTime;
 
 

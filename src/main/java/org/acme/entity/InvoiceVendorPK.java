@@ -2,8 +2,6 @@ package org.acme.entity;
 
 import java.io.Serializable;
 
-import javax.persistence.Embeddable;
-
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;

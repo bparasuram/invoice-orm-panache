@@ -1,7 +1,6 @@
 package org.acme;
 
 import java.net.URI;
-import java.util.List;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -20,7 +19,6 @@ import org.acme.entity.InvoiceList;
 
 import io.quarkus.hibernate.reactive.panache.common.runtime.ReactiveTransactional;
 import io.quarkus.logging.Log;
-import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 
 
