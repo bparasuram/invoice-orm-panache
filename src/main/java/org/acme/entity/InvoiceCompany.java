@@ -4,7 +4,6 @@ import java.io.Serializable;
 
 import javax.json.bind.annotation.JsonbTransient;
 import javax.persistence.Cacheable;
-import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
